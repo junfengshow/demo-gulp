@@ -16,19 +16,56 @@ const gulpClean = require('gulp-clean')
 // web 服务
 const connect = require('gulp-connect')
 // 使用webpack进行打包 也可以选择browserify等其它工具
-const webpack = require('webpack-stream')
+const webpackStream = require('webpack-stream')
+// webpack
+const webpack = require('webpack')
 // 命名并输出文件系统
 const named = require('vinyl-named')
 // 中html插入js、css、html等
 const gulpInject = require('gulp-inject')
 // 链接插件
 const concat = require('gulp-concat')
+// 打包工具
+const browserify = require('browserify')
 
 // ---------------------------------------------------------
 // 处理js
 function scriptsTask () {
+  // let babelResult
+  return series(
+    function () {
+      return src('./src/main.js')
+      // babel 转换
+      .pipe(babel({
+        plugins: ['@babel/plugin-proposal-class-properties'],
+        presets: ['@babel/preset-react', '@babel/preset-env']
+      }))
+      .pipe(dest('dist'))
+    },
+    function () {
+      return src('./dist/main.js')
+      .pipe(webpackStream({
+        mode: 'development',
+        output: {
+          filename: '[name].js'
+        },
+      }))
+      // rev生成带hash文件 
+      .pipe(rev())
+      // 输出生成的带hash的js文件
+      .pipe(dest('dist'))
+      // 生成json文件
+      .pipe(rev.manifest({
+        merge: false,
+        path: 'js-manifest.json'
+      }))
+      // 输出json文件到对应文件夹
+      .pipe(dest('rev'));
+    }
+  )
+
   // js 文件地址
-  return src('./src/**/*.js')
+  return src('./src/main.js')
   // babel 转换
   .pipe(babel({
     plugins: ['@babel/plugin-proposal-class-properties'],
@@ -37,23 +74,37 @@ function scriptsTask () {
   // 先进性命名、如果不命名webpack会将各个文件合并成一个文件
   .pipe(named())
   // 使用webpack进行打包
-  .pipe(webpack({
-    // mode: 'development',
-    output: {
-      filename: '[name].js'
-    }
-  }))
+  // .pipe(webpackStream({
+  //   mode: 'development',
+  //   output: {
+  //     filename: '[name].js'
+  //   },
+    // module: {
+    //   rules: [
+    //     {
+    //       test: /\.js$/,
+    //       use: {
+    //         loader: 'babel-loader',
+    //         options: {
+    //           plugins: ['@babel/plugin-proposal-class-properties'],
+    //           presets: ['@babel/preset-react', '@babel/preset-env']
+    //         }
+    //       }
+    //     }
+    //   ]
+    // }
+  // }))
   // rev生成带hash文件 
-  .pipe(rev())
+  // .pipe(rev())
   // 输出生成的带hash的js文件
   .pipe(dest('dist'))
   // 生成json文件
-  .pipe(rev.manifest({
-    merge: false,
-    path: 'js-manifest.json'
-  }))
+  // .pipe(rev.manifest({
+  //   merge: false,
+  //   path: 'js-manifest.json'
+  // }))
   // 输出json文件到对应文件夹
-  .pipe(dest('rev'));
+  // .pipe(dest('rev'));
 }
 
 // ---------------------------------------------------------
@@ -122,6 +173,6 @@ function webServer (cb) {
 
 // ---------------------------------------------------------
 // 设置监听
-// watch(['src/**/*.js', 'src/**/*.css'], null, series(scriptsTask,cssTask, collectorTask()))
+watch(['src/**/*.js', 'src/**/*.css'], null, series(scriptsTask(), cssTask, collectorTask()))
 
-exports.default = series(cleanTask, scriptsTask, cssTask, collectorTask())
+exports.default = series(cleanTask, scriptsTask(), cssTask, collectorTask(), webServer)
