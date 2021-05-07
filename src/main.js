@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
+import Button from './components/Button'
 
 class Main extends React.Component {
   constructor (props) {
@@ -23,6 +24,7 @@ class Main extends React.Component {
       <div>
         <a onClick={this.onClick}>click112233</a>
         <div>{age}</div>
+        <Button />
       </div>
     )
   }

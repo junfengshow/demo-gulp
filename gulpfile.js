@@ -34,21 +34,25 @@ function scriptsTask () {
   // let babelResult
   return series(
     function () {
-      return src('./src/main.js')
+      return src('./src/**/*.js')
       // babel 转换
       .pipe(babel({
         plugins: ['@babel/plugin-proposal-class-properties'],
         presets: ['@babel/preset-react', '@babel/preset-env']
       }))
-      .pipe(dest('dist'))
+      .pipe(concat('_main.js'))
+      .pipe(dest('rev'))
     },
     function () {
-      return src('./dist/main.js')
+      return src('./rev/_main.js')
       .pipe(webpackStream({
         mode: 'development',
         output: {
           filename: '[name].js'
         },
+        resolve: {
+          extensions: ['.js', '.jsx', '.json']
+        }
       }))
       // rev生成带hash文件 
       .pipe(rev())
